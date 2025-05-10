@@ -21,7 +21,8 @@ summary(dot.comp_all)
 dot.comp_all$X_mm <- as.numeric(dot.comp_all$X_mm)
 dot.comp_all$Y_mm <- as.numeric(dot.comp_all$Y_mm)
 
-## Ωr and bootstrap method estimating confidence limits of Ωr ----
+## Ωr ---- 
+## and bootstrap method estimating confidence limits of Ωr ?
 Ω_all_site_boot_0_500r <- data.frame()
 Ω_all_site_0_500r <- data.frame()
 
@@ -149,81 +150,8 @@ for (i in unique(dot.comp_all$site)) {
     
     write_xlsx(Ω_all_site_0_500r, 'Ω_all_site_0_500r.xlsx')
     
-    sel_species <- subset_data %>% 
-      dplyr::select(species_English) %>%
-      group_by(species_English) %>% 
-      mutate(indi_num = length(species_English)) %>%
-      filter(indi_num >= 20) %>%
-      filter(!duplicated(species_English)) %>%
-      mutate(mean_cden = indi_num/(2000*2000),
-             mean_hden = (nrow(subset_data)-indi_num)/(2000*2000))
-    
-    Ω0_500r <- Ω0_500r %>% 
-      filter(species_English %in% sel_species$species_English) %>% 
-      merge(sel_species) 
-    
-    Ω0_500r_boot <- data.frame()
-    
-    for (w in unique(sel_species$species_English)) {
-      for(q in 1:99) {
-        
-        Ω0_500r_spe <- Ω0_500r[Ω0_500r$species_English==w,]
-        
-        n <- as.integer(nrow(Ω0_500r_spe)/2)
-        
-        random_rows <- sample(1:nrow(Ω0_500r_spe), n)
-        Ω0_500r_sampled_data <- Ω0_500r_spe[random_rows, ]
-        
-        Ω0_boot_500r_spe <- Ω0_500r_sampled_data %>%
-          group_by(band) %>%
-          dplyr::summarise(mean_cden = mean(mean_cden),
-                           mean_hden = mean(mean_hden),
-                           tcD = sum(cD),
-                           thD = sum(hD),
-                           tarea = sum(area),
-                           spe_abun = mean(indi_num)) %>%
-          mutate(rtcD = tcD/tarea,
-                 rthD = thD/tarea) %>%
-          mutate(cΩ = rtcD/mean_cden,
-                 hΩ = rthD/mean_hden,
-                 #anpp_target = cover_cm2*high_mm, 
-                 time = q,
-                 species_English = w)
-        
-        Ω0_500r_boot <- bind_rows(Ω0_500r_boot, Ω0_boot_500r_spe)
-        
-      }
-    }
-    
-    Ω0_500r_boot <- Ω0_500r_boot %>%
-      #filter(cΩ != 'NA') %>%
-      group_by(species_English, band) %>%
-      #mutate(samp_num = length(cΩ)) %>%
-      #filter(samp_num >= 2) %>%
-      dplyr::summarise(mean_cΩ = mean(cΩ),
-                       sd_cΩ = sd(cΩ),
-                       conf_low_cΩ = t.test(cΩ)$conf.int[1]/2,
-                       conf_high_cΩ = t.test(cΩ)$conf.int[2]/2) %>%
-      ungroup() %>%
-      merge(Ω0_500r_boot %>%
-              #filter(hΩ != 'NA') %>%
-              group_by(species_English, band) %>% 
-              #mutate(samp_num = length(hΩ)) %>%
-              #filter(samp_num >= 2) %>%
-              dplyr::summarise(mean_hΩ = mean(hΩ),
-                               sd_hΩ = sd(hΩ),
-                               conf_low_hΩ = t.test(hΩ)$conf.int[1]/2,
-                               conf_high_hΩ = t.test(hΩ)$conf.int[2]/2,
-                               spe_abun = mean(spe_abun))) %>%
-      mutate(site = i, plot = j, rela_plot = rela_plot)
-    
-    Ω_all_site_boot_0_500r <- bind_rows(Ω_all_site_boot_0_500r, Ω0_500r_boot)
-    
-    write_xlsx(Ω_all_site_boot_0_500r, 'Ω_all_site_boot_0_500r.xlsx')
-    
    }
 }
-
 
 
 ## species segregation index Ms ----
